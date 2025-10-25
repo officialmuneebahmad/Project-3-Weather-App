@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="./css/style.css">
+    <link rel="stylesheet" href="./css/output.css">
+</head>
+<body class="h-auto my-16 flex flex-col justify-center items-center bg-orange-100">
+    <div class="h-auto w-full flex flex-col justify-evenly gap-8 items-center" id="app">
+
+        <h1 class="text-6xl font-black underline text-orange-500 text-center m-1">My Weather App</h1>
+        <button class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700" id="getWeatherBtn">Check My Weather</button>
+        
+        <div id="loading" style="display: none;">
+            <p>fetching your current weather...</p>
+        </div>
+        
+        <div id="error" style="display: none; color: red;">
+            <p id="errorMessage"></p>
+        </div>
+        
+        <div class="max-w-fit" id="weatherData" style="display: none;">
+            <div class="flex flex-col flex-wrap w-full justify-between items-center gap-y-2 rounded-2xl bg-white p-4 mb-8">
+                <h2 class="font-medium" id="city"></h2>
+                <h3 class="font-medium" id="country"></h3>
+                <h2 class="font-medium" id="location"></h2>
+                <p  class="font-medium" id="temperature"></p>
+                <p  class="font-medium" id="description"></p>
+                <p  class="font-medium" id="humidity"></p>
+                <p  class="font-medium" id="windSpeed"></p>
+            </div>
+        </div>
+    </div>
+    <div id="weatherAdvice" class="text-center my-16 mx-4 text-lg font-semibold text-gray-700"></div>
+
+    <!-- ===================================================== -->
+
+    <!-- ===================================================== -->
+
+    <h1 class="text-3xl font-bold text-gray-800 mb-8 mx-2 text-center">🌦️ Weather Measurement Charts</h1>
+
+  <!-- NEW: Three Forecast Line Charts -->
+  <h2 class="font-semibold text-2xl border-2 border-dashed p-1">📈 24-Hour Weather Forecast</h2>
+    
+    <div class="flex flex-row flex-wrap p-8">
+        
+        <!-- Temperature Chart -->
+        <div class="mx-2" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="color: #ff6384; margin-top: 0;">🌡️ Temperature Forecast</h3>
+            <div style="position: relative; height: 300px;">
+                <canvas id="forecastTempChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Humidity Chart -->
+        <div class="mx-2" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="color: #36a2eb; margin-top: 0;">💧 Humidity Forecast</h3>
+            <div style="position: relative; height: 300px;">
+                <canvas id="forecastHumidityChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Wind Speed Chart -->
+        <div class="mx-2" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            <h3 style="color: #4bc0c0; margin-top: 0;">🍃 Wind Speed Forecast</h3>
+            <div style="position: relative; height: 300px;">
+                <canvas id="forecastWindChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS Files -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./js/charts.js"></script>
+    <script src="./js/script.js"></script>
+</body>
+</html>
