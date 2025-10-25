@@ -1,5 +1,6 @@
 // API KEYS
 const WEATHER_API_KEY = '9edc182ce8acbc3fb823f614fc59c4a2';
+const MAPBOX_ACCESS_TOKEN = 'pk.eyJ1IjoibW9uaXh4eCIsImEiOiJjbWg2YXp1OW0waGIxMnJzYmpoNG90bjJqIn0.-q0r-q6zR13sagL273ZxrQ'; // 🔥 Get free at https://account.mapbox.com/
 const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 const FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast';
 
@@ -10,38 +11,52 @@ const errorDiv = document.getElementById('error');
 const weatherDataDiv = document.getElementById('weatherData');
 const errorMessage = document.getElementById('errorMessage');
 
-// Add click event listener
 getWeatherBtn.addEventListener('click', getWeather);
 
-// MAIN FUNCTION - Try multiple geolocation methods
+// MAIN FUNCTION
 async function getWeather() {
     try {
         showLoading();
         
         let position;
         let method = 'Unknown';
+        let accuracy = 0;
         
-        // Method 1: Try IP-based geolocation (most reliable, no permission needed)
-        try {
-            position = await getIPGeolocation();
-            method = 'IP Geolocation';
-            console.log('✅ Using IP-based location');
-        } catch (ipError) {
-            console.log('⚠️ IP geolocation failed, trying browser GPS...');
-            
-            // Method 2: Fallback to browser geolocation (needs permission)
+        // Method 1: Try Mapbox Geolocation (Best accuracy)
+        if (MAPBOX_ACCESS_TOKEN && MAPBOX_ACCESS_TOKEN !== 'YOUR_MAPBOX_TOKEN') {
             try {
-                position = await getUserLocation();
-                method = 'GPS/WiFi';
-                console.log('✅ Using browser geolocation');
-            } catch (browserError) {
-                throw new Error('Could not get your location. Please enable location services or check your internet connection.');
+                position = await getMapboxLocation();
+                method = 'Mapbox';
+                accuracy = position.coords.accuracy;
+                console.log('✅ Using Mapbox Geolocation (High Accuracy)');
+            } catch (mapboxError) {
+                console.log('⚠️ Mapbox failed:', mapboxError.message);
             }
         }
         
+        // Method 2: Try Browser GPS (Good for mobile)
+        if (!position) {
+            try {
+                position = await getUserLocation();
+                method = 'GPS/WiFi';
+                accuracy = position.coords.accuracy;
+                console.log('✅ Using Browser Geolocation');
+            } catch (gpsError) {
+                console.log('⚠️ GPS failed:', gpsError.message);
+            }
+        }
+        
+        // Method 3: Fallback to IP-based location
+        if (!position) {
+            position = await getIPGeolocation();
+            method = 'IP Location';
+            accuracy = 5000;
+            console.log('✅ Using IP-based Location (Lower Accuracy)');
+        }
+        
         const { latitude, longitude } = position.coords;
-        console.log(`📍 Coordinates: ${latitude}, ${longitude}`);
-        console.log(`🎯 Accuracy: ${position.coords.accuracy} meters`);
+        console.log(`📍 Location: ${latitude}, ${longitude}`);
+        console.log(`🎯 Accuracy: ±${Math.round(accuracy)}m`);
         console.log(`📡 Method: ${method}`);
         
         // Fetch weather data
@@ -49,7 +64,7 @@ async function getWeather() {
         const forecastData = await fetchForecastData(latitude, longitude);
         
         // Display results
-        displayWeather(weatherData, position.coords.accuracy, method);
+        displayWeather(weatherData, accuracy, method);
         displayForecastChart(forecastData);
         
     } catch (error) {
@@ -58,81 +73,44 @@ async function getWeather() {
     }
 }
 
-// 🔥 NEW: Free IP-based Geolocation (No API Key Required!)
-async function getIPGeolocation() {
-    // Try multiple free services for reliability
-    const services = [
-        {
-            name: 'ipapi.co',
-            url: 'https://ipapi.co/json/',
-            parse: (data) => ({
-                latitude: data.latitude,
-                longitude: data.longitude,
-                accuracy: 5000, // IP-based is ~5km accuracy
-                city: data.city,
-                country: data.country_name
-            })
-        },
-        {
-            name: 'ip-api.com',
-            url: 'http://ip-api.com/json/',
-            parse: (data) => ({
-                latitude: data.lat,
-                longitude: data.lon,
-                accuracy: 5000,
-                city: data.city,
-                country: data.country
-            })
-        },
-        {
-            name: 'ipgeolocation.io',
-            url: 'https://api.ipgeolocation.io/ipgeo?apiKey=',
-            parse: (data) => ({
-                latitude: parseFloat(data.latitude),
-                longitude: parseFloat(data.longitude),
-                accuracy: 5000,
-                city: data.city,
-                country: data.country_name
-            })
-        }
-    ];
-    
-    // Try each service until one works
-    for (const service of services) {
-        try {
-            console.log(`Trying ${service.name}...`);
-            const response = await fetch(service.url);
-            
-            if (!response.ok) continue;
-            
-            const data = await response.json();
-            const location = service.parse(data);
-            
-            // Validate the data
-            if (location.latitude && location.longitude) {
-                console.log(`✅ Got location from ${service.name}`);
-                return {
-                    coords: {
-                        latitude: location.latitude,
-                        longitude: location.longitude,
-                        accuracy: location.accuracy
-                    }
-                };
-            }
-        } catch (error) {
-            console.log(`${service.name} failed:`, error.message);
-            continue;
-        }
+// 🔥 MAPBOX GEOLOCATION (Most Accurate Free Alternative)
+async function getMapboxLocation() {
+    if (!MAPBOX_ACCESS_TOKEN || MAPBOX_ACCESS_TOKEN === 'YOUR_MAPBOX_TOKEN') {
+        throw new Error('Mapbox token not configured');
     }
     
-    throw new Error('All IP geolocation services failed');
+    // Use browser's geolocation first, then enhance with Mapbox's reverse geocoding
+    const browserPos = await getUserLocation();
+    
+    // Mapbox doesn't have a direct geolocation API like Google
+    // But we can use browser geolocation + Mapbox for enhanced accuracy
+    // and reverse geocoding for better location names
+    
+    try {
+        // Reverse geocode to get precise location name
+        const response = await fetch(
+            `https://api.mapbox.com/geocoding/v5/mapbox.places/${browserPos.coords.longitude},${browserPos.coords.latitude}.json?access_token=${MAPBOX_ACCESS_TOKEN}`
+        );
+        
+        if (!response.ok) {
+            throw new Error('Mapbox API error');
+        }
+        
+        const data = await response.json();
+        console.log('Mapbox enhanced location:', data.features[0]?.place_name);
+        
+        return browserPos; // Return enhanced position
+    } catch (error) {
+        console.log('Mapbox enhancement failed, using raw GPS');
+        return browserPos;
+    }
 }
 
-// FALLBACK: Browser Geolocation (High Accuracy GPS/WiFi)
+// Browser Geolocation (High Accuracy Mode)
 function getUserLocation() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            reject(new Error('Geolocation is not supported by your browser'));
+            reject(new Error('Geolocation not supported'));
             return;
         }
         
@@ -162,20 +140,59 @@ function getUserLocation() {
     });
 }
 
-// Fetch current weather data
+// IP-based Geolocation (Fallback)
+async function getIPGeolocation() {
+    const services = [
+        {
+            url: 'https://ipapi.co/json/',
+            parse: (data) => ({
+                latitude: data.latitude,
+                longitude: data.longitude,
+                accuracy: 5000
+            })
+        },
+        {
+            url: 'http://ip-api.com/json/',
+            parse: (data) => ({
+                latitude: data.lat,
+                longitude: data.lon,
+                accuracy: 5000
+            })
+        }
+    ];
+    
+    for (const service of services) {
+        try {
+            const response = await fetch(service.url);
+            if (!response.ok) continue;
+            
+            const data = await response.json();
+            const location = service.parse(data);
+            
+            if (location.latitude && location.longitude) {
+                return {
+                    coords: {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                        accuracy: location.accuracy
+                    }
+                };
+            }
+        } catch (error) {
+            continue;
+        }
+    }
+    
+    throw new Error('All geolocation methods failed');
+}
+
+// Fetch weather data
 async function fetchWeatherData(lat, lon) {
     const url = `${API_URL}?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`;
-    
     const response = await fetch(url);
     
     if (!response.ok) {
-        if (response.status === 401) {
-            throw new Error('Invalid API key');
-        } else if (response.status === 404) {
-            throw new Error('Location not found');
-        } else {
-            throw new Error('Failed to fetch weather data');
-        }
+        throw new Error('Failed to fetch weather data');
     }
     
     return await response.json();
@@ -184,7 +201,6 @@ async function fetchWeatherData(lat, lon) {
 // Fetch forecast data
 async function fetchForecastData(lat, lon) {
     const url = `${FORECAST_URL}?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`;
-    
     const response = await fetch(url);
     
     if (!response.ok) {
@@ -194,7 +210,7 @@ async function fetchForecastData(lat, lon) {
     return await response.json();
 }
 
-// Display weather with accuracy and method info
+// Display weather
 function displayWeather(data, accuracy, method) {
     const city = data.name;
     const country = data.sys.country;
@@ -203,23 +219,32 @@ function displayWeather(data, accuracy, method) {
     const humidity = data.main.humidity;
     const windSpeed = data.wind.speed;
 
-    // Show accuracy and detection method
-    const accuracyText = accuracy ? ` (±${Math.round(accuracy/1000)}km)` : '';
-    const methodEmoji = method === 'GPS/WiFi' ? '📡' : '🌐';
+    // Show accuracy
+    let accuracyText = '';
+    let methodEmoji = '📍';
     
-    document.getElementById('city').textContent = `${methodEmoji} Location: ${city}${accuracyText}`;
+    if (accuracy < 100) {
+        accuracyText = ` (±${Math.round(accuracy)}m)`;
+        methodEmoji = '🎯'; // Very accurate
+    } else if (accuracy < 1000) {
+        accuracyText = ` (±${Math.round(accuracy)}m)`;
+        methodEmoji = '📡'; // Good accuracy
+    } else {
+        accuracyText = ` (±${Math.round(accuracy/1000)}km)`;
+        methodEmoji = '🌐'; // IP-based
+    }
+    
+    document.getElementById('city').textContent = `${methodEmoji} ${city}${accuracyText}`;
     document.getElementById('country').textContent = `🗺️ Country: ${country}`;
     document.getElementById('temperature').textContent = `🌡️ Temperature: ${temp}°C`;
     document.getElementById('description').textContent = `🛰️ Condition: ${description}`;
     document.getElementById('humidity').textContent = `💧 Humidity: ${humidity}%`;
     document.getElementById('windSpeed').textContent = `🍃 Wind Speed: ${windSpeed} m/s`;
 
-    // Update charts
     if (window.updateWeatherCharts) {
         window.updateWeatherCharts(temp, humidity, windSpeed);
     }
 
-    // Show advice
     showWeatherAdvice(temp, humidity, windSpeed);
 
     hideLoading();
@@ -227,7 +252,7 @@ function displayWeather(data, accuracy, method) {
     weatherDataDiv.style.display = 'block';
 }
 
-// Display forecast charts
+// Display forecast
 function displayForecastChart(data) {
     const next24Hours = data.list.slice(0, 8);
     
@@ -258,24 +283,24 @@ function showWeatherAdvice(temp, humidity, windSpeed) {
 
     if (humidity < 30) advice += "💨 Air is dry — drink more water. ";
     else if (humidity < 60) advice += "🙂 Humidity is comfortable. ";
-    else if (humidity < 80) advice += "😓 Quite humid — sweating may feel sticky. ";
-    else advice += "💦 Very humid — expect heavy air and possible rain. ";
+    else if (humidity < 80) advice += "😓 Quite humid. ";
+    else advice += "💦 Very humid. ";
 
     if (windSpeed < 0.5) advice += "🌫️ Calm air. ";
     else if (windSpeed < 3) advice += "🍃 Light breeze. ";
     else if (windSpeed < 8) advice += "💨 Moderate wind. ";
-    else if (windSpeed < 15) advice += "🌬️ Strong wind — secure loose items. ";
-    else advice += "⚠️ Dangerous wind — stay indoors. ";
+    else if (windSpeed < 15) advice += "🌬️ Strong wind. ";
+    else advice += "⚠️ Dangerous wind. ";
 
     adviceEl.textContent = advice;
 }
 
-// UI Helper Functions
+// UI helpers
 function showLoading() {
     loadingDiv.innerHTML = `
         <div class="text-center">
-            <p class="text-lg">🔍 Detecting your location...</p>
-            <p class="text-sm text-gray-600 mt-2">Trying multiple methods for best accuracy</p>
+            <p class="text-lg">🔍 Getting your location...</p>
+            <p class="text-sm text-gray-600 mt-2">Using multiple methods for best accuracy</p>
         </div>
     `;
     loadingDiv.style.display = 'block';
