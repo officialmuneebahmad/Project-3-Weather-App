@@ -1,50 +1,134 @@
-// STEP 1: Set up your API keyy
-const API_KEY = '9edc182ce8acbc3fb823f614fc59c4a2';
+// API KEYS
+const WEATHER_API_KEY = '9edc182ce8acbc3fb823f614fc59c4a2';
 const API_URL = 'https://api.openweathermap.org/data/2.5/weather';
 const FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast';
 
-// STEP 2: Get DOM elements
+// DOM elements
 const getWeatherBtn = document.getElementById('getWeatherBtn');
 const loadingDiv = document.getElementById('loading');
 const errorDiv = document.getElementById('error');
 const weatherDataDiv = document.getElementById('weatherData');
 const errorMessage = document.getElementById('errorMessage');
 
-// STEP 3: Add click event listener
+// Add click event listener
 getWeatherBtn.addEventListener('click', getWeather);
 
-// STEP 4: Main function - Gets location then fetches weather
+// MAIN FUNCTION - Try multiple geolocation methods
 async function getWeather() {
     try {
-        // Show loading, hide other sections
         showLoading();
         
-        // Get user's coordinates
-        const position = await getUserLocation();
+        let position;
+        let method = 'Unknown';
+        
+        // Method 1: Try IP-based geolocation (most reliable, no permission needed)
+        try {
+            position = await getIPGeolocation();
+            method = 'IP Geolocation';
+            console.log('✅ Using IP-based location');
+        } catch (ipError) {
+            console.log('⚠️ IP geolocation failed, trying browser GPS...');
+            
+            // Method 2: Fallback to browser geolocation (needs permission)
+            try {
+                position = await getUserLocation();
+                method = 'GPS/WiFi';
+                console.log('✅ Using browser geolocation');
+            } catch (browserError) {
+                throw new Error('Could not get your location. Please enable location services or check your internet connection.');
+            }
+        }
+        
         const { latitude, longitude } = position.coords;
+        console.log(`📍 Coordinates: ${latitude}, ${longitude}`);
+        console.log(`🎯 Accuracy: ${position.coords.accuracy} meters`);
+        console.log(`📡 Method: ${method}`);
         
-        console.log(`Your coordinates: ${latitude}, ${longitude}`);
-        
-        // Fetch current weather data
+        // Fetch weather data
         const weatherData = await fetchWeatherData(latitude, longitude);
-        
-        // Fetch forecast data
         const forecastData = await fetchForecastData(latitude, longitude);
         
-        // Display the weather
-        displayWeather(weatherData);
-        
-        // Display forecast chart
+        // Display results
+        displayWeather(weatherData, position.coords.accuracy, method);
         displayForecastChart(forecastData);
         
     } catch (error) {
-        // Handle any errors
         showError(error.message);
-        console.error('Error:', error);
+        console.error('❌ Error:', error);
     }
 }
 
-// STEP 5: Get user's geolocation
+// 🔥 NEW: Free IP-based Geolocation (No API Key Required!)
+async function getIPGeolocation() {
+    // Try multiple free services for reliability
+    const services = [
+        {
+            name: 'ipapi.co',
+            url: 'https://ipapi.co/json/',
+            parse: (data) => ({
+                latitude: data.latitude,
+                longitude: data.longitude,
+                accuracy: 5000, // IP-based is ~5km accuracy
+                city: data.city,
+                country: data.country_name
+            })
+        },
+        {
+            name: 'ip-api.com',
+            url: 'http://ip-api.com/json/',
+            parse: (data) => ({
+                latitude: data.lat,
+                longitude: data.lon,
+                accuracy: 5000,
+                city: data.city,
+                country: data.country
+            })
+        },
+        {
+            name: 'ipgeolocation.io',
+            url: 'https://api.ipgeolocation.io/ipgeo?apiKey=',
+            parse: (data) => ({
+                latitude: parseFloat(data.latitude),
+                longitude: parseFloat(data.longitude),
+                accuracy: 5000,
+                city: data.city,
+                country: data.country_name
+            })
+        }
+    ];
+    
+    // Try each service until one works
+    for (const service of services) {
+        try {
+            console.log(`Trying ${service.name}...`);
+            const response = await fetch(service.url);
+            
+            if (!response.ok) continue;
+            
+            const data = await response.json();
+            const location = service.parse(data);
+            
+            // Validate the data
+            if (location.latitude && location.longitude) {
+                console.log(`✅ Got location from ${service.name}`);
+                return {
+                    coords: {
+                        latitude: location.latitude,
+                        longitude: location.longitude,
+                        accuracy: location.accuracy
+                    }
+                };
+            }
+        } catch (error) {
+            console.log(`${service.name} failed:`, error.message);
+            continue;
+        }
+    }
+    
+    throw new Error('All IP geolocation services failed');
+}
+
+// FALLBACK: Browser Geolocation (High Accuracy GPS/WiFi)
 function getUserLocation() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
@@ -57,65 +141,61 @@ function getUserLocation() {
             error => {
                 switch(error.code) {
                     case error.PERMISSION_DENIED:
-                        reject(new Error('Location permission denied. Please enable location access.'));
+                        reject(new Error('Location permission denied'));
                         break;
                     case error.POSITION_UNAVAILABLE:
-                        reject(new Error('Location information unavailable.'));
+                        reject(new Error('Location unavailable'));
                         break;
                     case error.TIMEOUT:
-                        reject(new Error('Location request timed out.'));
+                        reject(new Error('Location request timed out'));
                         break;
                     default:
-                        reject(new Error('An unknown error occurred.'));
+                        reject(new Error('Unknown location error'));
                 }
             },
             {
                 enableHighAccuracy: true,
-                timeout: 5000,
+                timeout: 10000,
                 maximumAge: 0
             }
         );
     });
 }
 
-// STEP 6: Fetch current weather data from API
+// Fetch current weather data
 async function fetchWeatherData(lat, lon) {
-    const url = `${API_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    const url = `${API_URL}?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`;
     
     const response = await fetch(url);
     
     if (!response.ok) {
         if (response.status === 401) {
-            throw new Error('Invalid API key. Please check your API key.');
+            throw new Error('Invalid API key');
         } else if (response.status === 404) {
-            throw new Error('Location not found.');
+            throw new Error('Location not found');
         } else {
-            throw new Error('Failed to fetch weather data.');
+            throw new Error('Failed to fetch weather data');
         }
     }
     
-    const data = await response.json();
-    console.log('Weather data:', data);
-    return data;
+    return await response.json();
 }
 
-// NEW: Fetch forecast data (5-day/3-hour)
+// Fetch forecast data
 async function fetchForecastData(lat, lon) {
-    const url = `${FORECAST_URL}?lat=${lat}&lon=${lon}&appid=${API_KEY}&units=metric`;
+    const url = `${FORECAST_URL}?lat=${lat}&lon=${lon}&appid=${WEATHER_API_KEY}&units=metric`;
     
     const response = await fetch(url);
     
     if (!response.ok) {
-        throw new Error('Failed to fetch forecast data.');
+        throw new Error('Failed to fetch forecast data');
     }
     
-    const data = await response.json();
-    console.log('Forecast data:', data);
-    return data;
+    return await response.json();
 }
 
-// STEP 7: Display current weather data
-function displayWeather(data) {
+// Display weather with accuracy and method info
+function displayWeather(data, accuracy, method) {
     const city = data.name;
     const country = data.sys.country;
     const temp = Math.round(data.main.temp);
@@ -123,23 +203,23 @@ function displayWeather(data) {
     const humidity = data.main.humidity;
     const windSpeed = data.wind.speed;
 
-    // Update DOM with emojis
-    document.getElementById('city').textContent = `📍 Nearest Location: ${city}`;
+    // Show accuracy and detection method
+    const accuracyText = accuracy ? ` (±${Math.round(accuracy/1000)}km)` : '';
+    const methodEmoji = method === 'GPS/WiFi' ? '📡' : '🌐';
+    
+    document.getElementById('city').textContent = `${methodEmoji} Location: ${city}${accuracyText}`;
     document.getElementById('country').textContent = `🗺️ Country: ${country}`;
     document.getElementById('temperature').textContent = `🌡️ Temperature: ${temp}°C`;
     document.getElementById('description').textContent = `🛰️ Condition: ${description}`;
     document.getElementById('humidity').textContent = `💧 Humidity: ${humidity}%`;
     document.getElementById('windSpeed').textContent = `🍃 Wind Speed: ${windSpeed} m/s`;
 
-    // Send data to charts.js
-    console.log('Updating charts with:', temp, humidity, windSpeed);
+    // Update charts
     if (window.updateWeatherCharts) {
         window.updateWeatherCharts(temp, humidity, windSpeed);
-    } else {
-        console.error('updateWeatherCharts function not found!');
     }
 
-    // Generate weather advice
+    // Show advice
     showWeatherAdvice(temp, humidity, windSpeed);
 
     hideLoading();
@@ -147,29 +227,25 @@ function displayWeather(data) {
     weatherDataDiv.style.display = 'block';
 }
 
-// NEW: Display all three forecast charts
+// Display forecast charts
 function displayForecastChart(data) {
-    // Get next 24 hours (8 data points, 3-hour intervals)
     const next24Hours = data.list.slice(0, 8);
     
-    // Extract time, temperature, humidity, and wind speed
     const labels = next24Hours.map(item => {
         const date = new Date(item.dt * 1000);
-        return date.getHours() + ':00'; // Show only hour
+        return date.getHours() + ':00';
     });
     
     const temperatures = next24Hours.map(item => Math.round(item.main.temp));
     const humidities = next24Hours.map(item => item.main.humidity);
-    const windSpeeds = next24Hours.map(item => Math.round(item.wind.speed * 10) / 10); // Round to 1 decimal
+    const windSpeeds = next24Hours.map(item => Math.round(item.wind.speed * 10) / 10);
     
-    // Call the chart creation function
     if (window.createForecastCharts) {
         window.createForecastCharts(labels, temperatures, humidities, windSpeeds);
     }
 }
 
-
-// Weather-based advice
+// Weather advice
 function showWeatherAdvice(temp, humidity, windSpeed) {
     const adviceEl = document.getElementById('weatherAdvice');
     let advice = '';
@@ -196,6 +272,12 @@ function showWeatherAdvice(temp, humidity, windSpeed) {
 
 // UI Helper Functions
 function showLoading() {
+    loadingDiv.innerHTML = `
+        <div class="text-center">
+            <p class="text-lg">🔍 Detecting your location...</p>
+            <p class="text-sm text-gray-600 mt-2">Trying multiple methods for best accuracy</p>
+        </div>
+    `;
     loadingDiv.style.display = 'block';
     errorDiv.style.display = 'none';
     weatherDataDiv.style.display = 'none';

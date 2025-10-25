@@ -6,11 +6,15 @@
     <title>Weather App</title>
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/output.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body class="h-auto my-16 flex flex-col justify-center items-center bg-orange-100">
     <div class="h-auto w-full flex flex-col justify-evenly gap-8 items-center" id="app">
 
-        <h1 class="text-6xl font-black font-sans underline text-orange-500 text-center m-1">My Weather App</h1>
+        <h1 class="text-6xl font-black underline text-orange-500 text-center m-1" id="heading">⛅ My Weather App</h1>
         <button class="font-sans py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700" id="getWeatherBtn">Check My Weather</button>
         
         <div id="loading" style="display: none;">
