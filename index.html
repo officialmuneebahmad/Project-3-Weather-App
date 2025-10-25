@@ -10,8 +10,8 @@
 <body class="h-auto my-16 flex flex-col justify-center items-center bg-orange-100">
     <div class="h-auto w-full flex flex-col justify-evenly gap-8 items-center" id="app">
 
-        <h1 class="text-6xl font-black underline text-orange-500 text-center m-1">My Weather App</h1>
-        <button class="py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700" id="getWeatherBtn">Check My Weather</button>
+        <h1 class="text-6xl font-black font-sans underline text-orange-500 text-center m-1">My Weather App</h1>
+        <button class="font-sans py-2.5 px-5 me-2 mb-2 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-blue-700 focus:z-10 focus:ring-4 focus:ring-gray-100 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700" id="getWeatherBtn">Check My Weather</button>
         
         <div id="loading" style="display: none;">
             <p>fetching your current weather...</p>
@@ -39,15 +39,15 @@
 
     <!-- ===================================================== -->
 
-    <h1 class="text-3xl font-bold text-gray-800 mb-8 mx-2 text-center">🌦️ Weather Measurement Charts</h1>
+    <h1 class="text-3xl font-bold font-sans text-gray-800 mb-8 mx-2 text-center">🌦️ Weather Measurement Charts</h1>
 
   <!-- NEW: Three Forecast Line Charts -->
-  <h2 class="font-semibold text-2xl border-2 border-dashed p-1">📈 24-Hour Weather Forecast</h2>
+  <h2 class="font-semibold font-sans text-2xl border-2 border-dashed p-1">📈 24-Hour Weather Forecast</h2>
     
     <div class="flex flex-row flex-wrap p-8">
         
         <!-- Temperature Chart -->
-        <div class="mx-2" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div class="mx-2 font-sans" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3 style="color: #ff6384; margin-top: 0;">🌡️ Temperature Forecast</h3>
             <div style="position: relative; height: 300px;">
                 <canvas id="forecastTempChart"></canvas>
@@ -55,7 +55,7 @@
         </div>
 
         <!-- Humidity Chart -->
-        <div class="mx-2" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div class="mx-2 font-sans" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3 style="color: #36a2eb; margin-top: 0;">💧 Humidity Forecast</h3>
             <div style="position: relative; height: 300px;">
                 <canvas id="forecastHumidityChart"></canvas>
@@ -63,7 +63,7 @@
         </div>
 
         <!-- Wind Speed Chart -->
-        <div class="mx-2" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <div class="mx-2 font-sans" style="margin-top: 30px; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
             <h3 style="color: #4bc0c0; margin-top: 0;">🍃 Wind Speed Forecast</h3>
             <div style="position: relative; height: 300px;">
                 <canvas id="forecastWindChart"></canvas>
